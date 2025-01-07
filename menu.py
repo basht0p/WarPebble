@@ -1,88 +1,97 @@
 import logger
-from oled import *
+import oled
 import buttons
 import sprites
-
-import logger
-from oled import *
-import buttons
-import sprites
-
-current_tile = 1
-dimensions = {
-    'width'      : 32,
-    'height'     : 32,
-    'y_offset'   : 32,
-    'x_anchor_1' : 6,
-    'x_anchor_2' : 48,
-    'x_anchor_3' : 90,
-}
 
 class Tile:
-    def __init__(self, x_anchor, y_offset, width, height, callback=None):
+    def __init__(self, x_anchor, y_offset, width, height, title, callback=None):
         self.x_anchor = x_anchor
         self.y_offset = y_offset
         self.width = width
         self.height = height
+        self.selected = 0
+        self.state = 0
         self.callback = callback
 
-    # A method to call the callback
-    def on_select(self):
-        if self.callback:
-            self.callback(self)
-        else:
-            print(f"Tile at ({self.x_anchor}, {self.y_offset}) selected.")
+    def on_select(self, selected=None):
+        if selected is None:
+            return self.selected
+        if selected is not None:
+            selected_y_offset = self.y_offset + self.height + 4
+            oled.display.fill_rect(self.x_anchor + 4, selected_y_offset, self.width - 8, 3, selected)
+            oled.display.show()
+        
+    def draw(self, state=None):
+        if state is None:
+            return self.state
+        self.callback(self.x_anchor, self.y_offset, state)
+        self.state = state
+        
+    def deselect(self):
+        self.selected = 0
 
 class Menu:
     def __init__(self, tiles):
         if not 1 <= len(tiles) <= 3:
             raise ValueError("Menu must have between 1 and 3 tiles.")
         self.tiles = tiles
+        self.selected_tile = 0
 
-    # Dynamic getter and setter methods for tile states
-    def _get_state(self, index):
-        return self.tiles[index].state
+    # Select a tile and call its callback
+    def select(self, index):
+        if index < 0 or index >= len(self.tiles):
+            raise IndexError("Invalid tile index.")
+        
+        # Deselect all tiles
+        for tile in self.tiles:
+            tile.on_select(0)
+        
+        self.selected_tile = index
+        self.tiles[index].on_select(1)
 
-    def _set_state(self, index, state):
-        self.tiles[index].state = state
+    # Get the currently selected tile
+    def selected(self):
+        return self.selected_tile
 
-    # First tile methods
+    # Getter and Setter for the first tile's state
     def first(self, state=None):
         if state is None:
-            return self._get_state(0)
-        self._set_state(0, state)
+            return self.tiles[0].state
+        self.tiles[0].state = state
+        self.tiles[0].draw(state)
 
-    def first_width(self):
-        dims = {
-            'x_anchor' :
-            'y_anchor' :
-            'width'    :
-            'height'   : 
-        }
-        return self.tiles[0].width
-
-    # Second tile methods
+    # Getter and Setter for the second tile's state
     def second(self, state=None):
         if len(self.tiles) < 2:
             raise IndexError("Second tile is not defined.")
         if state is None:
-            return self._get_state(1)
-        self._set_state(1, state)
+            return self.tiles[1].state
+        self.tiles[1].state = state
+        self.tiles[1].draw(state)
 
-    def second_width(self):
-        return self.tiles[1].width
-
-    # Third tile methods
+    # Getter and Setter for the third tile's state
     def third(self, state=None):
         if len(self.tiles) < 3:
             raise IndexError("Third tile is not defined.")
         if state is None:
-            return self._get_state(2)
-        self._set_state(2, state)
+            return self.tiles[2].state
+        self.tiles[2].state = state
+        self.tiles[2].draw(state)
 
-    def third_width(self):
-        return self.tiles[2].width
-    
+#-------------------------EXISTING-CODE-------------------------#
+#-------------------------EXISTING-CODE-------------------------#
+
+current_tile = 1
+dimensions = {
+    'width'      : 32,
+    'height'     : 32,
+    'y_offset'   : 20,
+    'x_anchor_1' : 6,
+    'x_anchor_2' : 48,
+    'x_anchor_3' : 90,
+}
+
+
 config = {
     'w': 32,
     'h': 36,
@@ -260,7 +269,6 @@ items = {
     }
 
 def select_tile_next(state, config):
-    """Move to the next tile, wrapping around from 3 back to 1."""
     global current_tile
     logger.write("main_menu: Selecting next tile...")
     current_tile = current_tile + 1 if current_tile < 3 else 1
@@ -271,7 +279,6 @@ def select_tile_next(state, config):
     tile(current_tile, 2, **config)
 
 def select_tile_previous(state, config):
-    """Move to the previous tile, wrapping around from 1 back to 3."""
     global current_tile
     logger.write("main_menu: Selecting previous tile...")
     current_tile = current_tile - 1 if current_tile > 1 else 3
@@ -313,13 +320,6 @@ def tile_1(state=0):
 
 
 def tile(pos, state, w, h, hp, vp):
-    """
-    Draw up to 3 tiles (pos = 1,2,3). 
-    If pos=0, clear everything and redraw all 3 tiles in the given state.
-    
-    state=1 or state=0 typically means 'unselected' or 'off', 
-    state=2 means 'selected' or 'highlighted'.
-    """
     logger.write("main_menu: Drawing tile at pos " + str(pos) + " with state " + str(state))
     global current_tile
     # Offsets / geometry

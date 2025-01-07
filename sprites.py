@@ -42,14 +42,13 @@ def show_wifi_connected():
     toggle_led(1)
     oled.display.show()
 
-def show_wifi_info_tile(x_anchor, y_anchor):
+def show_wifi_info_tile(x_anchor, y_anchor, state=0):
     logger.write("Drawing wifi_info tile sprite.")
     for pix in wifi_info_tile:
-        oled.display.pixel(pix[0] + x_anchor, pix[1] + y_anchor, 1)
-        gc.collect()
+        oled.display.pixel(pix[0] + x_anchor, pix[1] + y_anchor, state)
     oled.display.show()
     
-def show_wardriving_tile(x_anchor, y_anchor):
+def show_wardriving_tile(x_anchor, y_anchor, state=0):
     logger.write("Drawing wardriving tile sprite.")
 
     for y, row in enumerate(wardriving_tile):
@@ -57,7 +56,7 @@ def show_wardriving_tile(x_anchor, y_anchor):
             byte_index = x // 8
             bit_index = 7 - (x % 8)
             if row[byte_index] & (1 << bit_index):
-                oled.display.pixel(x + x_anchor, y + y_anchor, 1)
+                oled.display.pixel(x + x_anchor, y + y_anchor, state)
 
 def show_wifi_disconnected():
     if not led.value():
